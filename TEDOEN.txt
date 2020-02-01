@@ -1,0 +1,9 @@
+
+Op tw heb ik Paws geinstalleerd.
+
+Paws->service('Route53') gebruiken om een Route53 api te maken.
+
+Zie verder https://metacpan.org/pod/Paws::Route53
+
+
+
