@@ -3,6 +3,13 @@ Op tw heb ik Paws geinstalleerd.
 
 Paws->service('Route53') gebruiken om een Route53 api te maken.
 
+... helaas, werkt niet.
+
+aws-cli gebruiken. Lastig omdat deze json uit een file wil lezen.
+
+Wellicht is de https://metacpan.org/pod/AWS::CLIWrapper iets om het toch vanuit 
+perl te kunnen gebruiken.
+
 Zie verder https://metacpan.org/pod/Paws::Route53
 
 
