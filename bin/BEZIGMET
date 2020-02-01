@@ -1,0 +1,20 @@
+
+
+Dit:
+
+aws route53 change-resource-record-sets --hosted-zone-id ZA0Y5VAU7SYE2 --change-batch file://changeBatch.json
+
+.... werkt.
+
+
+Probleem: ik moet eerst een file schrijven....
+
+
+
+Rechtstreeks de json waarde als stdin lijkt niet te werken.
+
+
+
+De Paws module (die xml stuurt, doe het ook niet: 'bad request').
+
+

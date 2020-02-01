@@ -1,0 +1,18 @@
+{
+  "Comment": "test upsert vanuit aws-cli",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "host53.remijn.org.",
+	"TTL": 3600,
+        "Type": "A",
+        "ResourceRecords": [
+          {
+            "Value": "2.2.3.4"
+          }
+        ]
+      }
+    }
+  ]
+}
