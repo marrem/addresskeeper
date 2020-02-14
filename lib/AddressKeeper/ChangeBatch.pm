@@ -24,5 +24,10 @@ sub new {
 }
 
 
+sub TO_JSON {
+    my $self = shift;
+    return {%{ $self }};
+}
+
 
 1;

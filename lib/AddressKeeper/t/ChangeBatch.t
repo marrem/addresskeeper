@@ -9,6 +9,8 @@ use AddressKeeper::Change;
 use AddressKeeper::ResourceRecordSet;
 use AddressKeeper::ResourceRecord;
 
+use JSON;
+
 my @changes = (
     AddressKeeper::Change->new(
         Action            => 'UPSERT',
@@ -25,10 +27,9 @@ my @changes = (
     ),
 );
 
-{
-    my $o = AddressKeeper::ChangeBatch->new('Changes' => \@changes, 'Comment' => 'Changing address of gateway22');
-    ok($o, 'Object created');
-}
+my $o = AddressKeeper::ChangeBatch->new('Changes' => \@changes, 'Comment' => 'Changing address of gateway22');
+ok($o, 'Object created');
+
 
 
 {
@@ -44,6 +45,14 @@ my @changes = (
     };
     ok(!$@, 'Constructing without \'Comment\' (optional) is accepted');
 }
+
+my $json_encoder = JSON->new()->convert_blessed(1);
+
+my $json = $json_encoder->encode($o);
+
+warn $json;
+
+ok($json && !ref($json), 'JSON representation');
 
 
 done_testing();

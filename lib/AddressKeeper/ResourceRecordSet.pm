@@ -32,10 +32,16 @@ sub new {
     return bless {
         'Name' => $args{'Name'},
         'Type' => $args{'Type'},
-        'TTL' => $args{'TTL'},
+        # Force to JSON number
+        'TTL' => 0 + $args{'TTL'},
         'ResourceRecords' => $args{'ResourceRecords'},
     }, $proto;
 
+}
+
+sub TO_JSON {
+    my $self = shift;
+    return {%{$self}};
 }
 
 

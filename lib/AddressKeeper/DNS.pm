@@ -2,81 +2,64 @@ package AddressKeeper::DNS;
 
 use strict;
 use warnings;
-
+use Carp qw(croak);
+use Scalar::Util qw(blessed);
 use AWS::CLIWrapper;
-use Data::Dumper;
 use JSON;
 use File::Temp;
-
+use AddressKeeper::ChangeBatch;
 
 
 
 sub new {
-	my $proto = shift;
-	my $changeBatch = shift;
-	my $hostedZoneId = shift;
+    my $proto = shift;
+    my $changeBatch = shift;
+    my $hostedZoneId = shift;
 
-	return bless {
-		'changeBatch'  => $changeBatch,
-		'hostedZoneId' => $hostedZoneId,
-	}, proto;
+    unless ($changeBatch && blessed($changeBatch) && $changeBatch->isa('AddressKeeper::ChangeBatch')) {
+        croak("Invalid 'changeBatch', should be a 'AddressKeeper::ChangeBatch object");
+    }
+    unless ($hostedZoneId) {
+        croak("HostedZoneId empty or undefined");
+    }
+
+
+    return bless {
+        'changeBatch'  => $changeBatch,
+        'hostedZoneId' => $hostedZoneId,
+    }, $proto;
+
+}
+
+sub changeRecordSets {
+    my $self = shift;
+    my $json = JSON->new()->convert_blessed(1);
+    my $tmpFile = File::Temp->new();
+    print $tmpFile $json->encode($self->{changeBatch});
+    $tmpFile->close();
+
+    my $aws = AWS::CLIWrapper->new();
+
+    my $result = $aws->route53(
+        'change-resource-record-sets',
+        {
+            'hosted-zone-id' => $self->{hostedZoneId},
+            'change-batch'   => "file://$tmpFile",
+        }
+    );
+
+    if ($result) {
+        return $result;
+    }
+    else {
+        my $error = {
+            'code' => $AWS::CLIWrapper::Error->{Code},
+            'mesg' => $AWS::CLIWrapper::Error->{Message}
+        };
+        die $error;
+    }
 
 }
 
 
-
-
-# Remijn.org
-my $hostedZoneId = 'ZA0Y5VAU7SYE2';
-
-my %change_batch = (
-	Changes => [
-		{
-			Action            => 'UPSERT',
-			ResourceRecordSet => {
-				Name            => 'host53.remijn.org.',
-				Type            => 'A',
-				TTL             => 3600,
-				ResourceRecords => [
-					{
-						Value => '1.2.3.4',
-					}
-				],
-			},
-		},
-	],
-	Comment => 'Test upsert vanuit perl',
-);
-
-my $json = JSON->new();
-my $tmpFile = File::Temp->new();
-print $tmpFile $json->encode(\%change_batch);
-$tmpFile->close();
-
-
-my $aws = AWS::CLIWrapper->new();
-
-my $result = $aws->route53(
-	'change-resource-record-sets',
-	{
-		'hosted-zone-id' => $hostedZoneId,
-		'change-batch'   => "file://$tmpFile",
-	}
-);
-
-eval {
-	if ($result) {
-		print Dumper($result);
-	}
-	else {
-		my $error = {
-			'code' => $AWS::CLIWrapper::Error->{Code},
-			'mesg' => $AWS::CLIWrapper::Error->{Message}
-		};
-		die $error;
-	}
-};
-
-if ($@) {
-	print Dumper $@;
-}
+1;

@@ -8,23 +8,22 @@ use AddressKeeper::Change;
 use AddressKeeper::ResourceRecordSet;
 use AddressKeeper::ResourceRecord;
 
-{
-    my $o = AddressKeeper::Change->new(
-        Action            => 'UPSERT',
-        ResourceRecordSet => AddressKeeper::ResourceRecordSet->new(
-            Name            => 'host.domain.com',
-            Type            => 'A',
-            TTL             => 3600,
-            ResourceRecords => [
-                AddressKeeper::ResourceRecord->new(
-                    Value => '1.2.3.4',
-                )
-            ]
-        ),
-    );
-    ok($o, 'Object created');
-}
+use JSON;
 
+my $o = AddressKeeper::Change->new(
+    Action            => 'UPSERT',
+    ResourceRecordSet => AddressKeeper::ResourceRecordSet->new(
+        Name            => 'host.domain.com',
+        Type            => 'A',
+        TTL             => 3600,
+        ResourceRecords => [
+            AddressKeeper::ResourceRecord->new(
+                Value => '1.2.3.4',
+            )
+        ]
+    ),
+);
+ok($o, 'Object created');
 
 
 {
@@ -56,6 +55,11 @@ use AddressKeeper::ResourceRecord;
     ok($@, 'Exception thrown when constructed with invalid \'ResourceRecordSet\'');
 }
 
+my $json_encoder = JSON->new()->convert_blessed(1);
+
+my $json = $json_encoder->encode($o);
+
+ok($json && !ref($json), 'JSON representation');
 
 done_testing();
 

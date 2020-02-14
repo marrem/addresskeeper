@@ -28,11 +28,14 @@ sub new {
         'ResourceRecordSet' => $args{'ResourceRecordSet'},
     }, $proto;
 
-
-
-
 }
 
+
+
+sub TO_JSON {
+    my $self = shift;
+    return {%{ $self }};
+}
 
 
 1;
