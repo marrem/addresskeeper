@@ -5,8 +5,15 @@ I created this to update my dns at Dutch service provider [bHosted](http://www.b
 They use a nonstandard web service call (a simple GET) that I couldn't get working correctly using some of the well known dynamic dns packages available to me at the debian/ubuntu package repositories.
 
 ## dependencies
+
+### Perl modules
 * Config::Abstract::Ini
-* LWP
+* AWS::CLIWrapper
 * FindBin (core)
 * Sys::Syslog (core)
+
+### Non perl
+
+* aws cli
+
 
