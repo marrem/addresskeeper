@@ -52,11 +52,7 @@ sub changeRecordSets {
         return $result;
     }
     else {
-        my $error = {
-            'code' => $AWS::CLIWrapper::Error->{Code},
-            'mesg' => $AWS::CLIWrapper::Error->{Message}
-        };
-        die $error;
+        die "$AWS::CLIWrapper::Error->{Code}, $AWS::CLIWrapper::Error->{Message}";
     }
 
 }

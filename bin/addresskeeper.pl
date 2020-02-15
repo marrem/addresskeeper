@@ -6,6 +6,7 @@ use strict;
 use Config::Abstract::Ini;
 use FindBin qw($Bin);
 
+use LWP::UserAgent;
 use Sys::Syslog;
 
 use AddressKeeper::DNS;
@@ -13,8 +14,6 @@ use AddressKeeper::ChangeBatch;
 use AddressKeeper::Change;
 use AddressKeeper::ResourceRecordSet;
 use AddressKeeper::ResourceRecord;
-
-
 
 my $scriptName = $0;
 
@@ -26,12 +25,22 @@ my $userAgent = LWP::UserAgent->new;
 my $previousAddressStore = "$Bin/../var/${scriptName}.previous_address";
 my $ipRegexp = '(\d{1,3}\.){3}\d{1,3}';
 
-openlog($scriptName, '', 'local0');
+my $syslogFacility = $config->get_entry_setting('syslog', 'facility', 'local7');
+
+openlog($scriptName, '', $syslogFacility);
 eval {
 	main();
+	syslog('info', "End of script; closing syslog connection");
+	closelog();
+	exit 0;
 };
-syslog('info', "End of script; closing syslog connection");
-closelog();
+if ($@) {
+	my $e = $@;
+	syslog('warning', "Error executing script: $e");
+	syslog('info', "End of script; closing syslog connection");
+	closelog();
+	exit 1;
+}
 
 
 sub main {
@@ -51,12 +60,8 @@ sub main {
 	if ($currentAddress ne $previousAddress) {
 		syslog('warning', 'Current address [%s] different from previous address [%s]', ($currentAddress, $previousAddress));
 		# We have been assigned a new address
-		if (updateHosts($currentAddress)) {
-			# Update successful	
-			storeAsPrevious($currentAddress);
-		} else {
-			syslog('warning', 'One or more updates unsuccessful, leaving previous address unchanged');
-		}
+		updateHosts($currentAddress);
+		storeAsPrevious($currentAddress);
 	}
 	
 }
@@ -64,18 +69,26 @@ sub main {
 
 sub getCurrentAddress {
 	my $url = $config->get_entry_setting('check', 'url');
+	# TODO: Config::Abstract::Ini doesn't allow ';' in values. For now hardcoded useragent.
+	# my $userAgentHeader = $config->get_entry_setting('check', 'user_agent');
+	my $userAgentHeader = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36';
 	syslog('debug', 'Requesting address at %s', ($url));
 	my $checkReq = HTTP::Request->new(GET => $url);
 	$checkReq->header("accept", "text/plain");
+	$checkReq->header("user-agent", $userAgentHeader);
+
 
 	my $response = $userAgent->request($checkReq);
 	syslog('debug', 'Response status: %s', ($response->status_line));
 
+	unless ($response->status_line =~ /^200/) {
+		die (sprintf('Error getting current address from %s: [%s]', $url, $response->content));
+	}
+
 	my $address = $response->content;
 
 	unless ($address =~ /^$ipRegexp$/) {
-		syslog('err', 'Current ip address received from %s: [%s] is invalid', ($url, $address));	
-		die;
+		die (sprintf('Current ip address received from %s: [%s] is invalid', $url, $address));
 	}
 	return $address;
 }
@@ -120,7 +133,7 @@ sub updateHosts {
 	my %hosts = $config->get_entry('hosts');
 	my $hostedZoneId = $config->get_entry_setting('aws', 'hosted_zone_id');
 
-	my $hostKeysAsString = join(', ', keys(%hosts));
+	my $hostKeysAsString = join(', ', sort(keys(%hosts)));
 
 	my @changes;
 
@@ -147,18 +160,8 @@ sub updateHosts {
 
 	my $dns = AddressKeeper::DNS->new($changeBatch, $hostedZoneId);
 
-	my $updateSuccess = 1;
+	$dns->changeRecordSets();
 
-	eval {
-		$dns->changeRecordSets();
-	};
-	if ($@) {
-		$e = $@;
-		syslog('warning', 'One updates unsuccessful: $e');
-		$updateSuccess = 0;
-	}
-
-	return $updateSuccess;
 }
 
 
