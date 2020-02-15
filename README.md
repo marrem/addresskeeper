@@ -1,12 +1,13 @@
 # addresskeeper
-Perl script that updates dns with current public ip address
+Perl script that updates dns with current public ip address.
 
-I created this to update my dns at Dutch service provider [bHosted](http://www.bhosted.nl). 
-They use a nonstandard web service call (a simple GET) that I couldn't get working correctly using some of the well known dynamic dns packages available to me at the debian/ubuntu package repositories.
+To find out current ip address it uses a bot that returns current ip address on http get.
+To change dns it uses AWS-CLI's route53 API.
 
 ## dependencies
 
 ### Perl modules
+* LWP
 * Config::Abstract::Ini
 * AWS::CLIWrapper
 * FindBin (core)
