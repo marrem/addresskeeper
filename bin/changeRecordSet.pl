@@ -25,7 +25,7 @@ my $changeBatch = AddressKeeper::ChangeBatch->new(
                     TTL             => 3600,
                     ResourceRecords => [
                         AddressKeeper::ResourceRecord->new(
-                            Value => '4.2.3.4',
+                            Value => '4.3.3.4',
                         )
                     ]
                 ),

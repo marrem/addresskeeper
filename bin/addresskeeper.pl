@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# Sun Jul 17 15:37:08 CEST 2016
 # Marc Remijn
 use warnings;
 use strict;
@@ -8,7 +7,14 @@ use Config::Abstract::Ini;
 use FindBin qw($Bin);
 
 use Sys::Syslog;
-use LWP;
+
+use AddressKeeper::DNS;
+use AddressKeeper::ChangeBatch;
+use AddressKeeper::Change;
+use AddressKeeper::ResourceRecordSet;
+use AddressKeeper::ResourceRecord;
+
+
 
 my $scriptName = $0;
 
@@ -109,39 +115,50 @@ sub storeAsPrevious {
 
 sub updateHosts {
 	my ($address) = @_;
-	
+
+	my $ttl = $config->get_entry_setting('dns', 'ttl');
 	my %hosts = $config->get_entry('hosts');
+	my $hostedZoneId = $config->get_entry_setting('aws', 'hosted_zone_id');
+
+	my $hostKeysAsString = join(', ', keys(%hosts));
+
+	my @changes;
+
+	foreach my $hostKey (keys(%hosts)) {
+		push(
+			@changes,
+			AddressKeeper::Change->new(
+				Action            => 'UPSERT',
+				ResourceRecordSet => AddressKeeper::ResourceRecordSet->new(
+					Name            => $hosts{$hostKey},
+					Type            => 'A',
+					TTL             => $ttl + 0, # force to integer.
+					ResourceRecords => [
+						AddressKeeper::ResourceRecord->new(
+							Value => $address,
+						)
+					]
+				),
+			),
+		);
+	}
+
+	my $changeBatch = AddressKeeper::ChangeBatch->new('Changes' => \@changes, 'Comment' => "Changing address of $hostKeysAsString");
+
+	my $dns = AddressKeeper::DNS->new($changeBatch, $hostedZoneId);
 
 	my $updateSuccess = 1;
-	foreach my $host (values %hosts) {
-		my $url = $config->get_entry_setting('set', 'url');
-		$url =~ s/\$\{host\}/$host/;
-		$url =~ s/\$\{ip\}/$address/;
-		syslog('debug', 'Updating host [%s] -  address [%s]', ($host, $address));
-		unless(updateAddress($url)) {
-			$updateSuccess = 0;	
-		}
+
+	eval {
+		$dns->changeRecordSets();
+	};
+	if ($@) {
+		$e = $@;
+		syslog('warning', 'One updates unsuccessful: $e');
+		$updateSuccess = 0;
 	}
+
 	return $updateSuccess;
 }
 
 
-
-sub updateAddress {
-	my ($url) = @_;
-	my $req = HTTP::Request->new(GET => $url);	
-	my $resp = $userAgent->request($req);
-	my $statusLine = $resp->status_line;
-	
-	my $body = $resp->content;
-
-	if ($body =~ /^good\s+($ipRegexp)/) {
-		# Update successful
-		syslog('info', 'Address successfully updated to %s', ($1));
-		return 1;
-	} else {
-		syslog('err', 'Error updating address: statusline: [%s]; body: [%s]', ($statusLine, $body));
-		return 0;
-	}
-
-}
