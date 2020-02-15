@@ -21,3 +21,9 @@ To change dns it uses AWS-CLI's route53 API.
 * aws cli
 
 
+
+
+# TODO
+
+ * Use a config (ini) parser that accepts ';' in values (needed for 'user_agent' item).
+ 
