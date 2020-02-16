@@ -9,7 +9,7 @@ use FindBin qw($Bin);
 use LWP::UserAgent;
 use Sys::Syslog;
 
-use lib "$Bin/../lib";
+use lib "$Bin/../lib/addresskeeper";
 
 use AddressKeeper::DNS;
 use AddressKeeper::ChangeBatch;
