@@ -24,7 +24,7 @@ $scriptName =~ s{\.pl$}{};
 
 my $config = new Config::Abstract::Ini("$Bin/../etc/$scriptName.cfg");
 my $userAgent = LWP::UserAgent->new;
-my $previousAddressStore = "$Bin/../var/${scriptName}.previous_address";
+my $previousAddressStore = "$Bin/../var/${scriptName}/${scriptName}.previous_address";
 my $ipRegexp = '(\d{1,3}\.){3}\d{1,3}';
 
 my $syslogFacility = $config->get_entry_setting('syslog', 'facility', 'local7');
