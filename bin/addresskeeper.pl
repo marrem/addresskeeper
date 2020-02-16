@@ -164,6 +164,7 @@ sub updateHosts {
 
 	$dns->changeRecordSets();
 
+	syslog('info', "Successfully updated $hostKeysAsString to address: $address");
 }
 
 
